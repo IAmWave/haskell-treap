@@ -67,6 +67,23 @@ rotateR (Treap w a ls (Treap rw ra rls rrs))
     | rw > w      = Treap rw ra (Treap w a ls rls) rrs
     | otherwise   = Treap w a ls (Treap rw ra rls rrs)
 
+
+delete :: Ord a => a -> Treap a -> Treap a
+delete a Empty = Empty      -- No error - mirrors behavior of Data.Set
+delete a (Treap w' a' ls rs)
+    | a < a'     = Treap w' a' (delete a ls) rs
+    | a > a'     = Treap w' a' ls (delete a rs)
+    | ls == Empty && rs == Empty = Empty
+    | ls == Empty   = rs
+    | rs == Empty   = ls
+    | otherwise     = rotate $  (Treap w2 a2 ls t2)
+        where (t2, w2, a2) = delete' rs    -- Both sons exist
+
+delete' :: Ord a => Treap a -> (Treap a, Weight, a)
+delete' (Treap w a Empty Empty) = (Empty, w, a)
+delete' (Treap w a ls rs) = (rotate $ Treap w a ls' rs, w', a')
+    where (ls', w', a') = delete' ls
+
 -------------- List conversion --------------
 fromList :: (RandomGen g, Ord a) => g -> [a] -> (g, Treap a)
 fromList g [] = (g, Empty)
@@ -98,6 +115,17 @@ showTree' (Treap w a ls rs) d = myLine ++ "\n" ++ rest
         rest = if ((isEmpty ls) && (isEmpty rs))
             then ""
             else ((showTree' ls (True:d)) ++ (showTree' rs (False:d)))
+
+
+-- Check whether keys form a tree and weights form a heap
+isValid :: Ord a => Treap a -> Bool
+isValid t = ((List.sort tl) == tl) && (isValid' t (maxBound))
+    where
+        tl = toList t
+        isValid' :: Treap a -> Weight -> Bool
+        isValid' Empty _ = True
+        isValid' (Treap w _ ls rs) maxW = (w <= maxW) && (isValid' ls w) && (isValid' rs w)
+
 
 (g1, t1) = insert eg 'd' empty
 (g2, t2) = insert g1 'a' t1
