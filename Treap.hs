@@ -1,5 +1,6 @@
+module Treap where
+
 import System.Random
-import qualified Data.List as List
 
 type Weight = Int
 type Size = Int
@@ -12,10 +13,6 @@ instance Show a => Show (Treap a) where
     show = showTree
     -- show Empty = ""
     -- show (Treap w a ls rs) = (show a)++"|"++(show w)++"(" ++ (show ls) ++ ";" ++ (show rs) ++ ")"
-
-
-ex = Treap 2 9 'h' Empty (Treap 1 7 'j' Empty Empty)
-eg = mkStdGen 123
 
 empty :: Treap a
 empty = Empty
@@ -125,18 +122,3 @@ showTree' (Treap _ w a ls rs) d = myLine ++ "\n" ++ rest
         rest = if ((isEmpty ls) && (isEmpty rs))
             then ""
             else ((showTree' ls (True:d)) ++ (showTree' rs (False:d)))
-
-
--- Check whether keys form a tree and weights form a heap
-isValid :: Ord a => Treap a -> Bool
-isValid t = ((List.sort tl) == tl) && (isValid' t (maxBound))
-    where
-        tl = toList t
-        isValid' :: Treap a -> Weight -> Bool
-        isValid' Empty _ = True
-        isValid' (Treap _ w _ ls rs) maxW = (w <= maxW) && (isValid' ls w) && (isValid' rs w)
-
-
-(g1, t1) = insert eg 'd' empty
-(g2, t2) = insert g1 'a' t1
-t = snd $ fromList eg [1..10]
