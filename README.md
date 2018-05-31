@@ -3,13 +3,11 @@ A simple [treap](https://en.wikipedia.org/wiki/Treap) written in Haskell, for th
 
 ## TODO list
 ```Haskell
-delete :: Ord a => a -> Set a -> Set a 
 split :: Ord a => a -> Set a -> (Set a, Set a) 
 lookupIndex :: Ord a => a -> Set a -> Maybe Int
 findIndex :: Ord a => a -> Set a -> Int
 elemAt :: Int -> Set a -> a 
 ```
-- odstranit prvek s danou hodnotou
 - zjistit, co je na k-tém místě (případně to odstranit)
 - zjistit, na kolikátém místě je prvek s danou hodnotou
 - operace split a merge - rozdělení na dvě treapy podle nějaké hodnoty a sloučení
