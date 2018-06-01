@@ -108,17 +108,18 @@ toList l = toList' l []
 
 -------------- Debugging --------------
 showTree :: Show a => Treap a -> String
-showTree t = showTree' t []
+showTree t = showTree' t [] True
 
 indent :: [Bool] -> String
 indent [] = ""
 indent (x:xs) = (foldl (++) "" $ reverse $ map (\x -> if x then "|  " else "   ") xs) ++ "+--"
 
-showTree' :: Show a => Treap a -> [Bool] -> String
-showTree' Empty d = (indent d) ++ "ø\n"
-showTree' (Treap _ w a ls rs) d = myLine ++ "\n" ++ rest
+showTree' :: Show a => Treap a -> [Bool] -> Bool -> String
+showTree' Empty d _ = (indent d) ++ "ø\n"
+showTree' (Treap _ w a ls rs) d lastRight = lPart ++ myLine ++ "\n" ++ rPart
     where
         myLine = (indent d) ++ (show a) ++ " (" ++ (show w) ++ ")"
-        rest = if ((isEmpty ls) && (isEmpty rs))
-            then ""
-            else ((showTree' ls (True:d)) ++ (showTree' rs (False:d)))
+        dl = if (null d) then [] else (lastRight:(tail d))
+        dr = if (null d) then [] else ((not lastRight):(tail d))
+        lPart = if (isEmpty ls) then "" else (showTree' ls (True:dl)) False
+        rPart = if (isEmpty rs) then "" else (showTree' rs (True:dr)) True
