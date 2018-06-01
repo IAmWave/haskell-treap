@@ -77,8 +77,8 @@ updateSize (Treap n w v ls rs) = (Treap ((size ls) + (size rs) + 1) w v ls rs)
 delete :: Ord a => a -> Treap a -> Treap a
 delete a Empty = Empty      -- No error - mirrors behavior of Data.Set
 delete a (Treap n' w' a' ls rs)
-    | a < a'     = Treap (n'-1) w' a' (delete a ls) rs
-    | a > a'     = Treap (n'-1) w' a' ls (delete a rs)
+    | a < a'     = updateSize $ Treap n' w' a' (delete a ls) rs
+    | a > a'     = updateSize $ Treap n' w' a' ls (delete a rs)
     | ls == Empty && rs == Empty = Empty
     | ls == Empty   = rs
     | rs == Empty   = ls
@@ -87,7 +87,7 @@ delete a (Treap n' w' a' ls rs)
 
 -- Find the minimum, remove it and return the removed element along with the modified treap
 delete' :: Ord a => Treap a -> (Treap a, Weight, a)
-delete' (Treap n w a Empty Empty) = (Empty, w, a)
+delete' (Treap n w a Empty rs) = (rs, w, a)
 delete' (Treap n w a ls rs) = (rotate $ Treap (n-1) w a ls' rs, w', a')
     where (ls', w', a') = delete' ls
 
