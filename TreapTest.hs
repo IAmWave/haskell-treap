@@ -65,8 +65,21 @@ testDeleteNonexistent = TestList $ map makeTest [1..100]
             (size treap)
         treap = snd $ fromList eg [101..200]
 
+testElemAt :: Test
+testElemAt = TestList $ map makeTest [0..99]
+    where
+        makeTest i = TestCase $ assertEqual "elemAt works" (elemAt i treap) (i+100)
+        treap = snd $ fromList eg [100..199]
+
+testFindIndex :: Test
+testFindIndex = TestList $ map makeTest [100..199]
+    where
+        makeTest a = TestCase $ assertEqual "findIndex works" (findIndex a treap) (a-100)
+        treap = snd $ fromList eg [100..199]
+
 main :: IO Counts
-main = runTestTT $ TestList [testSize, testValid, testDeleteNonexistent, testDelete]
+main = runTestTT $ TestList [testSize, testValid, testDeleteNonexistent, testDelete, testElemAt,
+                             testFindIndex]
 
 
 

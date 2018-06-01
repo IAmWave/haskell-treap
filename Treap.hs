@@ -37,6 +37,25 @@ member a (Treap _ _ v ls rs)
     | a == v    = True
     | a > v     = member a rs
 
+-- Return the i-th element (indexed from 0) of a treap, or throw an error
+elemAt :: Ord a => Int -> Treap a -> a
+elemAt _ Empty = error "Treap.elemAt: index out of range"
+elemAt i (Treap n _ a ls rs)
+    | i < (size ls)  = elemAt i ls
+    | i == (size ls) = a
+    | otherwise      = elemAt (i-(size ls)-1) rs
+
+-- Get the index of an element `a` (inverse of elemAt).
+-- If `a` is present multiple times, findIndex may return any of the indices.
+findIndex :: Ord a => a -> Treap a -> Int
+findIndex = findIndex' 0
+    where
+        findIndex' :: Ord a => Int -> a -> Treap a -> Int
+        findIndex' _ _ Empty = error "Treap.findIndex: Error: element is not in the set"
+        findIndex' i a' (Treap n w a ls rs)
+            | a' == a = (i + (size ls))
+            | a' <  a = findIndex' i a' ls
+            | a' >  a = findIndex' (i + 1 + (size ls)) a' rs
 
 -------------- Modification --------------
 insert :: (RandomGen g, Ord a) => g -> a -> Treap a -> (g, Treap a)
