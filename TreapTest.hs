@@ -6,14 +6,6 @@ import Test.HUnit
 
 import Treap
 
-
-ex = Treap 2 9 'h' Empty (Treap 1 7 'j' Empty Empty)
-eg = mkStdGen 123
-
-(g1, t1) = insert eg 'd' empty
-(g2, t2) = insert g1 'a' t1
-t = snd $ fromList eg [1..10]
-
 -- Inefficient but good enough for our purposes
 shuffle :: (RandomGen g, Ord a) => g -> [a] -> (g, [a])
 shuffle g [] = (g, [])
@@ -33,7 +25,8 @@ isValid t = ((List.sort tl) == tl) && (isValid' t (maxBound))
         tl = toList t
         isValid' :: Treap a -> Weight -> Bool
         isValid' Empty _ = True
-        isValid' (Treap _ w _ ls rs) maxW = (w <= maxW) && (isValid' ls w) && (isValid' rs w)
+        isValid' (Treap n w _ ls rs) maxW = (w <= maxW) && (isValid' ls w) && (isValid' rs w) &&
+                                            (n == (size ls) + (size rs) + 1)
 
 construct :: (RandomGen g, Ord a) => g -> [a] -> (g, [Treap a])
 construct g al = (fst $ last scanned, map snd scanned)
@@ -47,6 +40,41 @@ testSize = TestList $ map makeTest (zip treapList [0..(length treapList)])
         treapList = snd $ construct eg $ shuffledList
         shuffledList = snd $ shuffle eg [1..100]
 
+testValid :: Test
+testValid = TestList $ map makeTest treapList
+    where
+        makeTest t = TestCase $ assertEqual "Treap satisfies invariant" (isValid t) True
+        treapList = snd $ construct eg $ shuffledList
+        shuffledList = snd $ shuffle eg [1..100]
+
+testDelete :: Test
+testDelete = TestList $ concat $ [map sizeTest [1..to], map memberTest [1..to], map validTest [1..to]]
+    where
+        to = 100
+        sizeTest a = TestCase $ assertEqual "Correct size" (size $ delete a treap) ((size treap) - 1)
+        memberTest a = TestCase $ assertBool "Not a member" (not (member a $ delete a treap))
+        validTest a = TestCase $ assertBool ("Preserves invariant " ++ (show a)) (isValid $ delete a treap)
+        treap = snd $ fromList eg [1..to]
+
+testDeleteNonexistent :: Test
+testDeleteNonexistent = TestList $ map makeTest [1..100]
+    where
+        makeTest a = TestCase $ assertEqual
+            "Deleting nonexistent is ok"
+            (size $ delete a treap)
+            (size treap)
+        treap = snd $ fromList eg [101..200]
 
 main :: IO Counts
-main = runTestTT $ TestList [testSize]
+main = runTestTT $ TestList [testSize, testValid, testDeleteNonexistent, testDelete]
+
+
+
+ex = Treap 2 9 'h' Empty (Treap 1 7 'j' Empty Empty)
+eg = mkStdGen 123
+
+(g1, t1) = insert eg 'd' empty
+(g2, t2) = insert g1 'a' t1
+a0 = snd $ fromList eg [1..10]
+a = delete 6 a0
+b = snd $ fromList eg [1..20]
