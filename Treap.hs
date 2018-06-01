@@ -50,10 +50,33 @@ insertWithWeight w a (Treap n w' a' ls' rs')
     | a <= a' = rotate $ Treap (n+1) w' a' (insertWithWeight w a ls') rs'
     | a >  a' = rotate $ Treap (n+1) w' a' ls' (insertWithWeight w a rs')
 
+delete :: Ord a => a -> Treap a -> Treap a
+delete a Empty = Empty      -- No error - mirrors behavior of Data.Set
+delete a (Treap n' w' a' ls rs)
+    | a < a'     = updateSize $ Treap n' w' a' (delete a ls) rs
+    | a > a'     = updateSize $ Treap n' w' a' ls (delete a rs)
+    | a == a'    = deleteRoot (Treap n' w' a' ls rs)
+
+-- Delete the root element of the treap
+deleteRoot :: Ord a => Treap a -> Treap a
+deleteRoot Empty = error "Cannot delete root of an empty treap"
+-- Trick: force rotations by setting w=-1
+deleteRoot (Treap n w a ls rs)
+    | ls == Empty && rs == Empty = Empty
+    | ls == Empty || lw <= rw              = updateSize $ mapLeftSon deleteRoot $ rotateR (Treap n (-1) a ls rs)
+    | rs == Empty || lw >  rw              = updateSize $ mapRightSon deleteRoot $ rotateL (Treap n (-1) a ls rs)
+    | otherwise = error "This shouldn't happen!"
+        where
+            getWeight Empty = -1
+            getWeight (Treap _ w' _ _ _) = w'
+            lw = getWeight ls
+            rw = getWeight rs
+
+-------------- Upkeep --------------
 rotate :: Ord a => Treap a -> Treap a
 rotate = rotateL . rotateR
 
--- Maintain the heap invariant of the left son
+-- Maintain the heap invariant of the left son (meaning a *right* rotation is performed if necessary)
 rotateL :: Ord a => Treap a -> Treap a
 rotateL Empty = Empty
 rotateL (Treap n w a Empty rs) = Treap n w a Empty rs
@@ -61,7 +84,7 @@ rotateL (Treap n w a (Treap ln lw la lls lrs) rs)
     | lw > w      = updateSize $ Treap ln lw la lls (updateSize $ Treap n w a lrs rs)
     | otherwise   = (Treap n w a (Treap ln lw la lls lrs) rs) -- no rotation
 
--- Maintain the heap invariant of the right son
+-- Maintain the heap invariant of the right son (meaning a *left* rotation is performed if necessary)
 rotateR :: Ord a => Treap a -> Treap a
 rotateR Empty = Empty
 rotateR (Treap n w a ls Empty) = Treap n w a ls Empty
@@ -74,22 +97,6 @@ updateSize :: Treap a -> Treap a
 updateSize Empty = Empty
 updateSize (Treap n w v ls rs) = (Treap ((size ls) + (size rs) + 1) w v ls rs)
 
-delete :: Ord a => a -> Treap a -> Treap a
-delete a Empty = Empty      -- No error - mirrors behavior of Data.Set
-delete a (Treap n' w' a' ls rs)
-    | a < a'     = updateSize $ Treap n' w' a' (delete a ls) rs
-    | a > a'     = updateSize $ Treap n' w' a' ls (delete a rs)
-    | ls == Empty && rs == Empty = Empty
-    | ls == Empty   = rs
-    | rs == Empty   = ls
-    | otherwise     = rotate $ (Treap (n'-1) w2 a2 ls t2) -- Both sons exist
-        where (t2, w2, a2) = delete' rs
-
--- Find the minimum, remove it and return the removed element along with the modified treap
-delete' :: Ord a => Treap a -> (Treap a, Weight, a)
-delete' (Treap n w a Empty rs) = (rs, w, a)
-delete' (Treap n w a ls rs) = (rotate $ Treap (n-1) w a ls' rs, w', a')
-    where (ls', w', a') = delete' ls
 
 -------------- List conversion --------------
 fromList :: (RandomGen g, Ord a) => g -> [a] -> (g, Treap a)
@@ -106,7 +113,7 @@ toList l = toList' l []
                   acc1 = toList' rs acc0
 
 
--------------- Debugging --------------
+-------------- Debugging/utility --------------
 showTree :: Show a => Treap a -> String
 showTree t = showTree' t [] True
 
@@ -123,3 +130,17 @@ showTree' (Treap _ w a ls rs) d lastRight = lPart ++ myLine ++ "\n" ++ rPart
         dr = if (null d) then [] else ((not lastRight):(tail d))
         lPart = if (isEmpty ls) then "" else (showTree' ls (True:dl)) False
         rPart = if (isEmpty rs) then "" else (showTree' rs (True:dr)) True
+
+leftSon :: Treap a -> Treap a
+leftSon (Treap _ _ _ ls _) = ls
+
+rightSon :: Treap a -> Treap a
+rightSon (Treap _ _ _ _ rs) = rs
+
+mapLeftSon :: (Treap a -> Treap a) -> Treap a -> Treap a
+mapLeftSon f Empty = Empty
+mapLeftSon f (Treap n w a ls rs) = Treap n w a (f ls) rs
+
+mapRightSon :: (Treap a -> Treap a) -> Treap a -> Treap a
+mapRightSon f Empty = Empty
+mapRightSon f (Treap n w a ls rs) = Treap n w a ls (f rs)
