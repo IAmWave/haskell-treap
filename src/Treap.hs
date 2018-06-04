@@ -79,10 +79,11 @@ deleteRoot Empty = error "Cannot delete root of an empty treap"
 -- Trick: force rotations by setting w=-1
 deleteRoot (Treap n w a ls rs)
     | (Treap.null ls) && (Treap.null rs)   = Empty
-    | (Treap.null ls) || lw <= rw          = updateSize $ mapLeftSon  deleteRoot $ rotateR (Treap n (-1) a ls rs)
-    | (Treap.null rs) || lw >  rw          = updateSize $ mapRightSon deleteRoot $ rotateL (Treap n (-1) a ls rs)
+    | (Treap.null ls) || leftSmaller       = updateSize $ mapLeftSon  deleteRoot $ rotateR (Treap n (-1) a ls rs)
+    | (Treap.null rs) || (not leftSmaller) = updateSize $ mapRightSon deleteRoot $ rotateL (Treap n (-1) a ls rs)
     | otherwise = error "This shouldn't happen!"
         where
+            leftSmaller = lw <= rw
             getWeight Empty = -1
             getWeight (Treap _ w' _ _ _) = w'
             lw = getWeight ls

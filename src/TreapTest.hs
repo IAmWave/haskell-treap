@@ -1,5 +1,3 @@
-module TestLambda where
-
 import qualified Data.List as List
 import System.Random
 import Test.HUnit
@@ -28,6 +26,7 @@ isValid t = ((List.sort tl) == tl) && (isValid' t (maxBound))
         isValid' (Treap n w _ ls rs) maxW = (w <= maxW) && (isValid' ls w) && (isValid' rs w) &&
                                             (n == (size ls) + (size rs) + 1)
 
+-- Like fromList, but returns the whole list of treaps being constructed step-by-step
 construct :: (RandomGen g, Ord a) => g -> [a] -> (g, [Treap a])
 construct g al = (fst $ last scanned, map snd scanned)
     where

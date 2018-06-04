@@ -14,12 +14,10 @@ middleRange n = concat $ zipWith (\x y -> [x,y]) [1..half] (reverse [(half+1)..n
     where
         half = n `div` 2
 
-deleteAll :: Ord a => [a] -> Treap a -> Bool
-deleteAll l t = Treap.null $ foldl (\t a -> delete a t) t l
-
 main = defaultMain [
         fromListBenchmarks,
         deleteBenchmarks,
+        deleteRootBenchmarks,
         lookupBenchmarks "member" member,
         lookupBenchmarks "elemAt" (\x t -> elemAt (x-1) t),
         lookupBenchmarks "findIndex" findIndex
@@ -45,11 +43,34 @@ deleteBenchmarks = bgroup "delete" [
         bench "2e4m1" $ deleteAllTest (middleRange 20000),
         bench "2e4m2" $ deleteAllTest (reverse $ middleRange 20000)
     ]
-    where deleteAllTest l = whnf (deleteAll l) t
+    where
+        deleteAll :: Ord a => [a] -> Treap a -> Bool
+        deleteAll l t = Treap.null $ foldl (\t a -> delete a t) t l
+
+        deleteAllTest l = whnf (deleteAll l) t
             where
                 -- The where clause is evaluated only once meaning that we don't count
                 -- the overhead from running fromList' into the time
                 t = snd . (fromList rng) $ l
+
+deleteRootBenchmarks = bgroup "deleteRoot" [
+        bench "1e3" $ deleteRootTest [1..1000],
+        bench "1e4" $ deleteRootTest [1..10000],
+        bench "2e4" $ deleteRootTest [1..20000],
+        -- Does the treap structure matter?
+        bench "2e4m1" $ deleteRootTest (middleRange 20000),
+        bench "2e4m2" $ deleteRootTest (reverse $ middleRange 20000)
+    ]
+    where
+        deleteRootAll :: Ord a => [a] -> Treap a -> Bool
+        deleteRootAll l t = Treap.null $ foldl (\t _ -> deleteRoot t) t l
+
+        deleteRootTest l = whnf (deleteRootAll l) t
+            where
+                -- The where clause is evaluated only once meaning that we don't count
+                -- the overhead from running fromList' into the time
+                t = snd . (fromList rng) $ l
+
 
 lookupBenchmarks name f = bgroup name [
         bench "2e4" $ memberTest [1..20000],
