@@ -19,11 +19,15 @@ deleteAll l t = isEmpty $ foldl (\t a -> delete a t) t l
 
 main = defaultMain [
         fromListBenchmarks,
-        deleteBenchmarks
+        deleteBenchmarks,
+        lookupBenchmarks "member" member,
+        lookupBenchmarks "elemAt" (\x t -> elemAt (x-1) t),
+        lookupBenchmarks "findIndex" findIndex
     ]
 
--- performance of `fromList` gives us the performance of `insert` (with minial overhead)
-fromListBenchmarks = bgroup "fromList" [
+-- performance of `fromList` gives us the performance of `insert` (with minial overhead).
+-- Different sizes show how fast the operations are asymptotically
+fromListBenchmarks = bgroup "insert" [
         bench "1e3" $ whnf fromList' [1..1000],
         bench "1e4" $ whnf fromList' [1..10000],
         bench "2e4" $ whnf fromList' [1..20000],
@@ -33,7 +37,7 @@ fromListBenchmarks = bgroup "fromList" [
     ]
     where fromList' = snd . (fromList rng)
 
-deleteBenchmarks = bgroup "deleteAll" [
+deleteBenchmarks = bgroup "delete" [
         bench "1e3" $ deleteAllTest [1..1000],
         bench "1e4" $ deleteAllTest [1..10000],
         bench "2e4" $ deleteAllTest [1..20000],
@@ -46,3 +50,11 @@ deleteBenchmarks = bgroup "deleteAll" [
                 -- The where clause is evaluated only once meaning that we don't count
                 -- the overhead from running fromList' into the time
                 t = snd . (fromList rng) $ l
+
+lookupBenchmarks name f = bgroup name [
+        bench "2e4" $ memberTest [1..20000],
+        bench "2e4m1" $ memberTest (middleRange 20000),
+        bench "2e4m2" $ memberTest (reverse $ middleRange 20000)
+    ]
+    where memberTest l = nf (map (\x -> f x t)) l
+            where t = snd . (fromList rng) $ l

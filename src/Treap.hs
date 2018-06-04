@@ -43,7 +43,7 @@ elemAt _ Empty = error "Treap.elemAt: index out of range"
 elemAt i (Treap n _ a ls rs)
     | i < (size ls)  = elemAt i ls
     | i == (size ls) = a
-    | otherwise      = elemAt (i-(size ls)-1) rs
+    | i > (size ls)      = elemAt (i-(size ls)-1) rs
 
 -- Get the index of an element `a` (inverse of elemAt).
 -- If `a` is present multiple times, findIndex may return any of the indices.
