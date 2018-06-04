@@ -8,12 +8,9 @@ type Size = Int
 -- Elements with higher weights are higher.
 data Treap v = Empty | Treap Size Weight v (Treap v) (Treap v)
     deriving (Eq)
+instance Show a => Show (Treap a) where show = showTree
 
-instance Show a => Show (Treap a) where
-    show = showTree
-    -- show Empty = ""
-    -- show (Treap w a ls rs) = (show a)++"|"++(show w)++"(" ++ (show ls) ++ ";" ++ (show rs) ++ ")"
-
+-------------- Construction --------------
 empty :: Treap a
 empty = Empty
 
@@ -22,9 +19,9 @@ singleton g a = (g', Treap 1 w a Empty Empty)
     where (w, g') = next g
 
 -------------- Lookup --------------
-isEmpty :: Treap a -> Bool
-isEmpty Empty = True
-isEmpty t = False
+null :: Treap a -> Bool
+null Empty = True
+null t = False
 
 size :: Treap a -> Size
 size Empty = 0
@@ -32,18 +29,18 @@ size (Treap n _ _ _ _) = n
 
 member :: Ord a => a -> Treap a -> Bool
 member _ Empty = False
-member a (Treap _ _ v ls rs)
-    | a < v     = member a ls
-    | a == v    = True
-    | a > v     = member a rs
+member a (Treap _ _ v ls rs) = case compare a v of
+    LT -> member a ls
+    GT -> member a rs
+    EQ -> True
 
--- Return the i-th element (indexed from 0) of a treap, or throw an error
+-- Return the i-th element (indexed from 0), or throw an error if the index is invalid
 elemAt :: Ord a => Int -> Treap a -> a
 elemAt _ Empty = error "Treap.elemAt: index out of range"
-elemAt i (Treap n _ a ls rs)
-    | i < (size ls)  = elemAt i ls
-    | i == (size ls) = a
-    | i > (size ls)      = elemAt (i-(size ls)-1) rs
+elemAt i (Treap n _ a ls rs) = case compare i (size ls) of
+    LT -> elemAt i ls
+    GT -> elemAt (i - (size ls) - 1) rs
+    EQ -> a
 
 -- Get the index of an element `a` (inverse of elemAt).
 -- If `a` is present multiple times, findIndex may return any of the indices.
@@ -52,38 +49,38 @@ findIndex = findIndex' 0
     where
         findIndex' :: Ord a => Int -> a -> Treap a -> Int
         findIndex' _ _ Empty = error "Treap.findIndex: Error: element is not in the set"
-        findIndex' i a' (Treap n w a ls rs)
-            | a' == a = (i + (size ls))
-            | a' <  a = findIndex' i a' ls
-            | a' >  a = findIndex' (i + 1 + (size ls)) a' rs
+        findIndex' i a' (Treap n w a ls rs) = case compare a' a of
+            LT -> findIndex' i a' ls
+            GT -> findIndex' (i + 1 + (size ls)) a' rs
+            EQ -> (i + (size ls))
 
 -------------- Modification --------------
 insert :: (RandomGen g, Ord a) => g -> a -> Treap a -> (g, Treap a)
-insert g a treap = (g', insertWithWeight w a treap)
-    where (w, g') = next g
+insert g x treap = (g', insertWithWeight v x treap)
+    where (v, g') = next g
 
 -- First insert at the bottom, then rotate to maintain the heap invariant
 insertWithWeight :: Ord a => Weight -> a -> Treap a -> Treap a
-insertWithWeight w a Empty = Treap 1 w a Empty Empty
-insertWithWeight w a (Treap n w' a' ls' rs')
-    | a <= a' = rotate $ Treap (n+1) w' a' (insertWithWeight w a ls') rs'
-    | a >  a' = rotate $ Treap (n+1) w' a' ls' (insertWithWeight w a rs')
+insertWithWeight v x Empty = Treap 1 v x Empty Empty
+insertWithWeight v x (Treap n w a ls rs)
+    | x <= a    = rotate $ Treap (n+1) w a (insertWithWeight v x ls) rs
+    | otherwise = rotate $ Treap (n+1) w a ls (insertWithWeight v x rs)
 
 delete :: Ord a => a -> Treap a -> Treap a
-delete a Empty = Empty      -- No error - mirrors behavior of Data.Set
-delete a (Treap n' w' a' ls rs)
-    | a < a'     = updateSize $ Treap n' w' a' (delete a ls) rs
-    | a > a'     = updateSize $ Treap n' w' a' ls (delete a rs)
-    | a == a'    = deleteRoot (Treap n' w' a' ls rs)
+delete x Empty = Empty      -- No error - mirrors behavior of Data.Set
+delete x (Treap n w a ls rs) = case compare x a of
+    LT -> updateSize $ Treap n w a (delete x ls) rs
+    GT -> updateSize $ Treap n w a ls (delete x rs)
+    EQ -> deleteRoot (Treap n w a ls rs)
 
 -- Delete the root element of the treap
 deleteRoot :: Ord a => Treap a -> Treap a
 deleteRoot Empty = error "Cannot delete root of an empty treap"
 -- Trick: force rotations by setting w=-1
 deleteRoot (Treap n w a ls rs)
-    | ls == Empty && rs == Empty = Empty
-    | ls == Empty || lw <= rw              = updateSize $ mapLeftSon deleteRoot $ rotateR (Treap n (-1) a ls rs)
-    | rs == Empty || lw >  rw              = updateSize $ mapRightSon deleteRoot $ rotateL (Treap n (-1) a ls rs)
+    | (Treap.null ls) && (Treap.null rs)   = Empty
+    | (Treap.null ls) || lw <= rw          = updateSize $ mapLeftSon  deleteRoot $ rotateR (Treap n (-1) a ls rs)
+    | (Treap.null rs) || lw >  rw          = updateSize $ mapRightSon deleteRoot $ rotateL (Treap n (-1) a ls rs)
     | otherwise = error "This shouldn't happen!"
         where
             getWeight Empty = -1
@@ -91,7 +88,19 @@ deleteRoot (Treap n w a ls rs)
             lw = getWeight ls
             rw = getWeight rs
 
--------------- Upkeep --------------
+-------------- List conversion --------------
+fromList :: (RandomGen g, Ord a) => g -> [a] -> (g, Treap a)
+fromList g l = foldl (\(g, t) a -> insert g a t) (g, Empty) l
+
+toList :: Treap a -> [a]
+toList l = toList' l []
+    where
+        toList' Empty acc = acc
+        toList' (Treap _ _ a ls rs) acc0 = acc2
+            where acc2 = toList' ls (a:acc1)
+                  acc1 = toList' rs acc0
+
+-------------- Internal --------------
 rotate :: Ord a => Treap a -> Treap a
 rotate = rotateL . rotateR
 
@@ -116,22 +125,6 @@ updateSize :: Treap a -> Treap a
 updateSize Empty = Empty
 updateSize (Treap n w v ls rs) = (Treap ((size ls) + (size rs) + 1) w v ls rs)
 
-
--------------- List conversion --------------
-fromList :: (RandomGen g, Ord a) => g -> [a] -> (g, Treap a)
-fromList g [] = (g, Empty)
-fromList g (a:as) = insert g' a rest
-    where (g', rest) = fromList g as
-
-toList :: Treap a -> [a]
-toList l = toList' l []
-    where
-        toList' Empty acc = acc
-        toList' (Treap _ _ a ls rs) acc0 = acc2
-            where acc2 = toList' ls (a:acc1)
-                  acc1 = toList' rs acc0
-
-
 -------------- Debugging/utility --------------
 showTree :: Show a => Treap a -> String
 showTree t = showTree' t [] True
@@ -141,14 +134,14 @@ indent [] = ""
 indent (x:xs) = (foldl (++) "" $ reverse $ map (\x -> if x then "|  " else "   ") xs) ++ "+--"
 
 showTree' :: Show a => Treap a -> [Bool] -> Bool -> String
-showTree' Empty d _ = (indent d) ++ "ø\n"
+showTree' Empty _ _ = "ø" -- Only happens with an empty treap
 showTree' (Treap _ w a ls rs) d lastRight = lPart ++ myLine ++ "\n" ++ rPart
     where
         myLine = (indent d) ++ (show a) ++ " (" ++ (show w) ++ ")"
-        dl = if (null d) then [] else (lastRight:(tail d))
-        dr = if (null d) then [] else ((not lastRight):(tail d))
-        lPart = if (isEmpty ls) then "" else (showTree' ls (True:dl)) False
-        rPart = if (isEmpty rs) then "" else (showTree' rs (True:dr)) True
+        dl = if (Prelude.null d) then [] else (lastRight:(tail d))
+        dr = if (Prelude.null d) then [] else ((not lastRight):(tail d))
+        lPart = if (Treap.null ls) then "" else (showTree' ls (True:dl)) False
+        rPart = if (Treap.null rs) then "" else (showTree' rs (True:dr)) True
 
 leftSon :: Treap a -> Treap a
 leftSon (Treap _ _ _ ls _) = ls

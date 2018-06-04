@@ -15,7 +15,7 @@ middleRange n = concat $ zipWith (\x y -> [x,y]) [1..half] (reverse [(half+1)..n
         half = n `div` 2
 
 deleteAll :: Ord a => [a] -> Treap a -> Bool
-deleteAll l t = isEmpty $ foldl (\t a -> delete a t) t l
+deleteAll l t = Treap.null $ foldl (\t a -> delete a t) t l
 
 main = defaultMain [
         fromListBenchmarks,
