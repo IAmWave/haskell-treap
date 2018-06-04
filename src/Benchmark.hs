@@ -14,15 +14,35 @@ middleRange n = concat $ zipWith (\x y -> [x,y]) [1..half] (reverse [(half+1)..n
     where
         half = n `div` 2
 
+deleteAll :: Ord a => [a] -> Treap a -> Bool
+deleteAll l t = isEmpty $ foldl (\t a -> delete a t) t l
+
 main = defaultMain [
-    -- performance of `fromList` gives us the performance of `insert` (with minial overhead)
-    bgroup "fromList" [
-        bench "1e3" $ whnf (snd . (fromList rng) . range) 1000,
-        bench "1e4" $ whnf (snd . (fromList rng) . range) 10000,
-        bench "1e5" $ whnf (snd . (fromList rng) . range) 100000,
-        -- Does the insertion order matter?
-        bench "1e3m" $ whnf (snd . (fromList rng) . middleRange) 1000,
-        bench "1e4m" $ whnf (snd . (fromList rng) . middleRange) 10000,
-        bench "1e5m" $ whnf (snd . (fromList rng) . middleRange) 100000
-        ]
+        fromListBenchmarks,
+        deleteBenchmarks
     ]
+
+-- performance of `fromList` gives us the performance of `insert` (with minial overhead)
+fromListBenchmarks = bgroup "fromList" [
+        bench "1e3" $ whnf fromList' [1..1000],
+        bench "1e4" $ whnf fromList' [1..10000],
+        bench "2e4" $ whnf fromList' [1..20000],
+        -- Does the insertion order matter?
+        bench "2e4m1" $ whnf fromList' (middleRange 20000),
+        bench "2e4m2" $ whnf fromList' (reverse $ middleRange 20000)
+    ]
+    where fromList' = snd . (fromList rng)
+
+deleteBenchmarks = bgroup "deleteAll" [
+        bench "1e3" $ deleteAllTest [1..1000],
+        bench "1e4" $ deleteAllTest [1..10000],
+        bench "2e4" $ deleteAllTest [1..20000],
+        -- Does the deletion order matter?
+        bench "2e4m1" $ deleteAllTest (middleRange 20000),
+        bench "2e4m2" $ deleteAllTest (reverse $ middleRange 20000)
+    ]
+    where deleteAllTest l = whnf (deleteAll l) t
+            where
+                -- The where clause is evaluated only once meaning that we don't count
+                -- the overhead from running fromList' into the time
+                t = snd . (fromList rng) $ l
