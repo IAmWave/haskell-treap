@@ -79,3 +79,6 @@ testFindIndex = TestList $ map makeTest [100..199]
 main :: IO Counts
 main = runTestTT $ TestList [testSize, testValid, testDeleteNonexistent, testDelete, testElemAt,
                              testFindIndex]
+
+-- An arbitrary RNG.
+eg = mkStdGen 123
