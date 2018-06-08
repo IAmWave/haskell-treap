@@ -79,14 +79,3 @@ testFindIndex = TestList $ map makeTest [100..199]
 main :: IO Counts
 main = runTestTT $ TestList [testSize, testValid, testDeleteNonexistent, testDelete, testElemAt,
                              testFindIndex]
-
-
-
-ex = Treap 2 9 'h' Empty (Treap 1 7 'j' Empty Empty)
-eg = mkStdGen 123
-
-(g1, t1) = insert eg 'd' empty
-(g2, t2) = insert g1 'a' t1
-a0 = snd $ fromList eg [1..10]
-a = delete 6 a0
-b = snd $ fromList eg [1..20]
